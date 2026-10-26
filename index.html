@@ -1,10 +1,170 @@
-<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sjoelbak tegen Omnia v5.5</title><style>body{margin:0;background:#17251d;color:#f6e8cb;font-family:system-ui;text-align:center}main{max-width:440px;margin:auto;padding:12px}input,select,button{font:inherit;padding:10px;border-radius:9px;border:0}button{background:#d3a45c;color:#23190c;font-weight:700;margin:5px}input{width:125px}canvas{width:min(95%,350px);touch-action:none;border:8px solid #70431f;border-radius:10px;background:#dbac70}#info{min-height:48px}small{opacity:.7}</style></head><body><main><h2>Sjoelbak tegen Omnia</h2><div><input id="name" placeholder="Jouw naam" maxlength="20" value="Speler"><select id="level"><option value="easy">Beginner</option><option value="normal" selected>Normaal</option><option value="hard">Expert</option></select></div><button id="new">Nieuw spel</button><button id="next">Volgende beurt</button><div id="info"></div><canvas id="board" width="350" height="650"></canvas><p><small>Sleep vanaf de schijf naar beneden om kracht op te bouwen en laat los.<br>© Teekay & Omnia 2026</small></p></main><script>
-(()=>{const c=document.querySelector('#board'),g=c.getContext('2d'),info=document.querySelector('#info');let name='Speler',player=0,round=1,ammo=30,discs=[],shot=null,drag=null,aiPending=false,finished=false;const vals=[2,3,4,1],R=17,top=104,GAP=49;const records=[[],[]];let playerRound=1;function ready(){return discs.find(d=>d.ready)}function moving(){return discs.some(d=>!d.scored&&!d.ready&&Math.hypot(d.vx,d.vy)>.12)}function spawn(){if(finished||ammo<=0||moving()||ready())return;discs.push({x:175,y:588,vx:0,vy:0,ready:true,scored:false,slot:-1})}function count(){let a=[0,0,0,0];discs.filter(d=>d.scored).forEach(d=>a[d.slot]++);return a}function score(a){let n=Math.min(...a);return n*20+a.reduce((s,v,i)=>s+(v-n)*vals[i],0)}function total(p){let a=[0,0,0,0];records[p].forEach(r=>r.forEach((n,i)=>a[i]+=n));if(p===player)count().forEach((n,i)=>a[i]+=n);return score(a)}function hud(){let p=player===0?name:'Omnia';info.innerHTML=`<b>${name}: ${total(0)} &nbsp;|&nbsp; Omnia: ${total(1)}</b><br>${finished?'Wedstrijd afgelopen':p+' · ronde '+round+'/3 · '+ammo+' schijven over'}`}
-function draw(){let bg=g.createLinearGradient(0,0,350,0);bg.addColorStop(0,'#b87c3e');bg.addColorStop(.5,'#efc990');bg.addColorStop(1,'#b87c3e');g.fillStyle=bg;g.fillRect(0,0,350,650);g.strokeStyle='#c9985e';for(let i=0;i<20;i++){g.beginPath();g.moveTo(i*21,0);g.lineTo(i*21-8,650);g.stroke()}g.fillStyle='#69401e';
-g.fillRect(0,14,350,8);
-for(let i=0;i<4;i++){let center=(i+.5)*87.5,left=center-GAP/2,start=i*87.5,end=start+87.5;g.fillRect(start,top-8,Math.max(0,left-start),8);g.fillRect(left+GAP,top-8,Math.max(0,end-(left+GAP)),8)}
-for(let i=0;i<4;i++){let center=(i+.5)*87.5,left=center-GAP/2;g.fillStyle='#2b2018';g.fillRect(left,22,GAP,65);g.fillStyle='#f6dfaa';g.font='bold 23px system-ui';g.textAlign='center';g.fillText(vals[i],center,60);g.fillStyle='#805025';g.fillRect(left-8,86,8,34);g.fillRect(left+GAP,86,8,34)}discs.forEach(d=>{g.beginPath();g.arc(d.x,d.y,R,0,7);g.fillStyle=d.ready?'#e5b779':'#97622e';g.fill();g.lineWidth=2;g.strokeStyle='#fff0cb';g.stroke()});if(drag&&ready()){g.strokeStyle='white';g.lineWidth=3;g.beginPath();g.moveTo(ready().x,ready().y);g.lineTo(drag.x,drag.y);g.stroke()}hud()}
-function shoot(vx,vy){let d=ready();if(!d)return;d.ready=false;d.vx=vx;d.vy=vy;drag=null}function tick(){for(const d of discs){if(d.ready||d.scored)continue;d.x+=d.vx;d.y+=d.vy;d.vx*=.987;d.vy*=.987;
-if(Math.hypot(d.vx,d.vy)<3){d.vx*=.96;d.vy*=.96}
-if(Math.abs(d.vx)<.04)d.vx=0;if(Math.abs(d.vy)<.04)d.vy=0;if(d.x<R){d.x=R;d.vx=Math.abs(d.vx)*.28}if(d.x>350-R){d.x=350-R;d.vx=-Math.abs(d.vx)*.28}if(d.y>650-R){d.y=650-R;d.vy=-Math.abs(d.vy)*.25}if(d.y<top+R&&d.y>top-R){let i=Math.max(0,Math.min(3,Math.floor(d.x/87.5))),center=(i+.5)*87.5;let fits=Math.abs(d.x-center)<=(GAP/2-R);if(!fits){d.y=top+R;d.vy=Math.abs(d.vy)*.08}}if(d.y<top-R&&!d.scored){let i=Math.max(0,Math.min(3,Math.floor(d.x/87.5))),center=(i+.5)*87.5;let fits=Math.abs(d.x-center)<=(GAP/2-R);if(fits&&d.y<top-R-4){d.scored=true;d.slot=i;d.vx=0;d.vy=0;d.x=center;d.y=Math.max(58,Math.min(78,d.y))}}if(!d.scored&&d.y<R+22){d.y=R+22;d.vy=Math.abs(d.vy)*.05}}for(let i=0;i<discs.length;i++)for(let j=i+1;j<discs.length;j++){let a=discs[i],b=discs[j];if(a.scored||b.scored||a.ready||b.ready)continue;let dx=b.x-a.x,dy=b.y-a.y,dist=Math.hypot(dx,dy)||.001;if(dist<2*R){let nx=dx/dist,ny=dy/dist,over=2*R-dist;a.x-=nx*over/2;a.y-=ny*over/2;b.x+=nx*over/2;b.y+=ny*over/2;let rel=(a.vx-b.vx)*nx+(a.vy-b.vy)*ny;if(rel>0){a.vx-=rel*nx*.92;a.vy-=rel*ny*.92;b.vx+=rel*nx*.92;b.vy+=rel*ny*.92}}}if(!moving()&&!ready()&&!finished&&ammo>0){spawn();}if(player===1&&!aiPending&&ready()&&!moving()&&!finished){aiPending=true;setTimeout(()=>{aiPending=false;if(player!==1||finished||moving()||!ready())return;let level=document.querySelector('#level').value;let err={easy:48,normal:23,hard:9}[level];let target=(Math.floor(Math.random()*4)+.5)*87.5+(Math.random()-.5)*err;let dx=target-175;shoot(dx/58,-(level==='easy'?14:17));ammo--;},420)}draw();requestAnimationFrame(tick)}function next(){if(finished||moving())return;records[player].push(count());discs=[];if(round<3){round++;ammo=Math.max(0,30-records[player].reduce((s,a)=>s+a.reduce((u,v)=>u+v,0),0))}else if(player===0){player=1;round=1;ammo=30}else{finished=true;let a=total(0),b=total(1);info.innerHTML=(a===b?'Gelijkspel!':(a>b?name:'Omnia')+' wint!')+' '+a+' – '+b;return}spawn()}function reset(){name=document.querySelector('#name').value.trim()||'Speler';player=0;round=1;ammo=30;discs=[];records[0]=[];records[1]=[];finished=false;aiPending=false;spawn()}function point(e){let r=c.getBoundingClientRect();return{x:(e.clientX-r.left)*350/r.width,y:(e.clientY-r.top)*650/r.height}}c.addEventListener('pointerdown',e=>{if(player!==0||finished||moving())return;let d=ready(),p=point(e);if(d&&Math.hypot(p.x-d.x,p.y-d.y)<65){drag=p;c.setPointerCapture(e.pointerId)}});c.addEventListener('pointermove',e=>{if(drag)drag=point(e)});c.addEventListener('pointerup',e=>{if(!drag)return;let p=point(e),d=ready();if(d){let dx=d.x-p.x,dy=d.y-p.y;shoot(Math.max(-9,Math.min(9,dx*.12)),Math.max(-22,Math.min(-3,dy*.19)));ammo--}drag=null});document.querySelector('#new').onclick=reset;document.querySelector('#next').onclick=next;reset();tick()})();
+<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bosmieren — Module 3 · Lucht · v3.1</title><style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#10141a;color:#edf1f6;font:14px system-ui,sans-serif;padding:18px}.wrap{max-width:1120px;margin:auto}header{margin-bottom:15px}h1{margin:0;font-size:24px}p{color:#aab5c3}.layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:18px;align-items:start}canvas{display:block;width:100%;aspect-ratio:1;background:#fff;border-radius:10px;image-rendering:pixelated}.module-title{font-weight:750;font-size:16px;margin:0 0 12px;color:#eaf1ff}.module-caption{font-size:12px;color:#9eafc4;margin:0 0 12px}.side-stack{display:grid;gap:14px}.panel{background:#202731;border:1px solid #3c4552;border-radius:12px;padding:16px}.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}button{background:#343f4e;color:white;border:1px solid #586476;border-radius:8px;padding:10px 6px;cursor:pointer}button.primary{background:#386de0;border-color:#386de0}.full{width:100%;margin-top:8px}.control{margin-top:20px}label{display:flex;justify-content:space-between;gap:8px;margin-bottom:7px}label output{color:#9bc1ff}input{width:100%;accent-color:#5688ed}.counts{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:15px 0}.count{background:#151b23;padding:9px;border-radius:7px}.count b{display:block;margin-top:4px}.foot{font-size:12px;color:#aab5c3;line-height:1.5}.status{color:#8ed7aa;font-weight:600}@media(max-width:760px){.layout{grid-template-columns:1fr}.panel{max-width:none}}
+.tool-card{display:flex;gap:12px;align-items:center;border:1px solid #414d5e;background:#18212c;border-radius:10px;padding:9px;margin:10px 0}.tool-image{width:74px;height:86px;flex:none}.tool-fields{flex:1;min-width:0}.tool-fields strong{display:block;font-size:13px;margin-bottom:12px}.tool-fields label{font-size:12px;margin-bottom:4px}.tool-fields input{margin:0} </style></head><body><div class="wrap"><header><h1>🐜 Bosmieren <span style="font-weight:400;color:#91a5be">/ Module 3 · v3.1</span></h1><p>1000 × 1000 · Module 3: lucht in vijf schilderfasen · modules 1 en 2 blijven beschikbaar</p></header><div class="layout"><div><canvas id="canvas" width="1000" height="1000"></canvas><p id="info">Gepauzeerd · 0,00% beschilderd</p></div><div class="side-stack"><aside class="panel"><h2 class="module-title">Module 1 — Mierenmotor</h2><p class="module-caption">Beweging en pigment · vaste basis</p><div class="actions"><button id="start" class="primary">▶ Start</button><button id="pause">Ⅱ Pauze</button><button id="reset">↻ Reset</button></div><button id="new" class="full">✦ Nieuwe startposities</button><div class="counts"><div class="count" style="color:#55cbe3">● Cyaan<b id="c0">0</b></div><div class="count" style="color:#f071c8">● Magenta<b id="c1">0</b></div><div class="count" style="color:#f2d64f">● Geel<b id="c2">0</b></div><div class="count">● Wit<b id="c3">0</b></div></div><div class="control"><label>Snelheid per mier <output id="speedOut">3.000</output></label><input id="speed" type="range" min="250" max="10000" step="250" value="3000"></div><div class="control"><label>Pigmentafgifte <output id="depositOut">110</output></label><input id="deposit" type="range" min="26" max="255" step="1" value="110"></div><div class="control"><label>Kleurmenging <output id="mixOut">65%</output></label><input id="mix" type="range" min="0" max="100" value="65"></div><div class="control"><label>Nattheid <output id="wetOut">40%</output></label><input id="wet" type="range" min="0" max="100" value="40"></div><div class="control"><label>Verfdikte <output id="thickOut">55%</output></label><input id="thick" type="range" min="0" max="100" value="55"></div><div class="control"><label>Verdeling <output id="spreadOut">50%</output></label><input id="spread" type="range" min="0" max="100" value="50"></div><div class="control"><button id="save" class="full">↓ Bewaar als PNG</button><p class="foot">Verdeling: links blijven mieren meer in hun eigen gebied, rechts bewegen ze vrijer door het hele doek. Kleurmenging: 0% laat nieuwe verf bestaande kleuren verdringen; 100% laat pigmenten samen mengen. Wit is zachter en minder dekkend. Nattheid bepaalt hoeveel bestaande verf een gereedschap oppikt en op volgende plekken weer afgeeft. De tellers tonen werkelijk afgegeven pigmenteenheden. Elk gereedschap krijgt per verfbeurt hetzelfde pigmentbudget. Pigmentafgifte bepaalt hoeveel kleur elke verfbeurt achterlaat (26 is de oorspronkelijke instelling). </p></aside><section class="panel"><h2 class="module-title">Module 2 — Schildergereedschappen</h2><p class="module-caption">Vier gereedschappen · afzonderlijke afmetingen van 1 tot 10</p><div class="tool-card"><svg class="tool-image" viewBox="-8 0 92 100" role="img" aria-label="Afbeelding van klein penseel"><rect x="-8" y="0" width="92" height="100" rx="9" fill="#131c28"/><g transform="translate(9 0)"><path d="M39 8 L48 15 L24 53 L17 49 Z" fill="#c79a64"/><path d="M17 49 L24 53 L14 74 L10 70 Z" fill="#b8b2a4"/><path d="M10 70 L14 74 L12 88 L7 89 Z" fill="#d5b68e"/></g></svg><div class="tool-fields"><strong>1. Klein penseel</strong><label for="size0">Grootte <output id="size0Out">1 / 10</output></label><input id="size0" type="range" min="1" max="10" step="1" value="1"></div></div><div class="tool-card"><svg class="tool-image" viewBox="-8 0 92 100" role="img" aria-label="Afbeelding van breed penseel"><rect x="-8" y="0" width="92" height="100" rx="9" fill="#131c28"/><g transform="translate(9 0)"><path d="M39 8 L48 15 L25 50 L17 46 Z" fill="#c79a64"/><path d="M17 46 L25 50 L12 72 L3 66 Z" fill="#b6b1a7"/><path d="M3 66 L12 72 L7 89 L-1 86 Z" fill="#d4b18a"/></g></svg><div class="tool-fields"><strong>2. Breed penseel</strong><label for="size1">Grootte <output id="size1Out">1 / 10</output></label><input id="size1" type="range" min="1" max="10" step="1" value="1"></div></div><div class="tool-card"><svg class="tool-image" viewBox="-8 0 92 100" role="img" aria-label="Afbeelding van klein schildersmes"><rect x="-8" y="0" width="92" height="100" rx="9" fill="#131c28"/><g transform="translate(9 0)"><path d="M43 8 L49 12 L33 41 L28 38 Z" fill="#a9adb4"/><path d="M28 38 L33 41 L52 59 L23 82 L12 68 Z" fill="#cbd0d7" stroke="#929ba7" stroke-width="2"/></g></svg><div class="tool-fields"><strong>3. Klein schildersmes</strong><label for="size2">Grootte <output id="size2Out">1 / 10</output></label><input id="size2" type="range" min="1" max="10" step="1" value="1"></div></div><div class="tool-card"><svg class="tool-image" viewBox="-8 0 92 100" role="img" aria-label="Afbeelding van groot schildersmes"><rect x="-8" y="0" width="92" height="100" rx="9" fill="#131c28"/><g transform="translate(9 0)"><path d="M43 8 L49 12 L33 41 L28 38 Z" fill="#a9adb4"/><path d="M28 38 L33 41 L67 59 L27 91 L8 67 Z" fill="#cbd0d7" stroke="#929ba7" stroke-width="2"/></g></svg><div class="tool-fields"><strong>4. Groot schildersmes</strong><label for="size3">Grootte <output id="size3Out">1 / 10</output></label><input id="size3" type="range" min="1" max="10" step="1" value="1"></div></div><div class="control"><label>Textuur schildersmes <output id="textureOut">75%</output></label><input id="texture" type="range" min="0" max="100" value="75"></div><p class="foot">Stand 1 is de oorspronkelijke grootte. Hogere standen vergroten zowel de breedte als de lengte van de verfstreken. De gereedschappen zelf blijven onzichtbaar op het doek; de mierenbolletjes blijven zichtbaar.</p></section><section class="panel" id="skyPanel"><h2 class="module-title">Module 3 — Lucht</h2><p class="module-caption">Vijf automatische schilderfasen</p><div class="control"><label>Hoogte lucht <output id="skyHeightOut">60%</output></label><input id="skyHeight" type="range" min="50" max="70" value="60"></div><div class="control"><label>Aantal luchtkleuren <output id="skyColorsOut">3</output></label><input id="skyColors" type="range" min="2" max="4" value="3"></div><div class="control"><label>Nabewerking <output id="skyDetailOut">55%</output></label><input id="skyDetail" type="range" min="10" max="100" value="55"></div><div class="control"><label>Automatische lucht <input id="skyMode" type="checkbox" checked style="width:auto"></label></div><p class="status" id="phaseStatus">Fase 1 — breed penseel</p><p class="foot" id="phaseProgress">0% bedekt</p><p class="foot">Eerst volledige dekking met een breed penseel, dan achtereenvolgens groot schildersmes, klein penseel, klein schildersmes en vrije accenten. De grond blijft vrij.</p></section></div></div></div><script>
+(()=>{'use strict';
+const N=1000,T=N*N,$=id=>document.getElementById(id),canvas=$('canvas'),ctx=canvas.getContext('2d',{alpha:false}),image=ctx.createImageData(N,N),pixels=image.data,pigment=new Uint8Array(T*4),painted=new Uint8Array(T),pos=new Int32Array(4),dir=new Int8Array(4),counts=new Float64Array(4),dx=[0,1,0,-1],dy=[-1,0,1,0],colors=['#54e8fa','#fa4fc9','#ffe34c','#ffffff'];
+let running=false,last=0,acc=0,filled=0,speed=3000,deposit=110,mix=.65,spread=.5,toolSizes=[1,1,1,1],texture=.75,wet=.40,thick=.55,dirty=true,carry=new Float32Array(16),skyMask=new Uint8Array(T),skyPainted=0,skyPhase=0,skyMarks=0,skyHeight=.60,skyColors=3,skyDetail=.55,skyMode=true,skyTargets=[],skySeed=0;
+const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+function neighbor(j,d){let x=j%N,y=(j/N)|0;x+=dx[d];y+=dy[d];if(x<0)x=N-1;else if(x>=N)x=0;if(y<0)y=N-1;else if(y>=N)y=0;return y*N+x}
+function reset(random=false){skyMask.fill(0);skyPainted=0;skyPhase=0;skyMarks=0;skyTargets=[];running=false;last=0;acc=0;filled=0;pigment.fill(0);painted.fill(0);counts.fill(0);carry.fill(0);for(let j=0;j<T;j++){let p=j*4;pixels[p]=246;pixels[p+1]=244;pixels[p+2]=238;pixels[p+3]=255}for(let a=0;a<4;a++){let x=random?Math.floor(Math.random()*N):[250,750,250,750][a],y=random?Math.floor(Math.random()*N):[250,250,750,750][a];pos[a]=y*N+x}dir.set([1,2,0,3]);dirty=true;skyInit();draw();update()}
+function recolor(j,relief=0){let p=j*4,c=pigment[p]/255,m=pigment[p+1]/255,y=pigment[p+2]/255,w=pigment[p+3]/255;
+ // CMY subtractive pigment; white pigment lightens mixed colors and can cover them.
+ let baseR=246*(1-c),baseG=244*(1-m),baseB=238*(1-y);
+ let whiteCover=clamp(w*.38);
+ let shade=clamp(1+relief,.5,1.35);
+ pixels[p]=Math.round(clamp((baseR*(1-whiteCover)+255*whiteCover)*shade,0,255));
+ pixels[p+1]=Math.round(clamp((baseG*(1-whiteCover)+255*whiteCover)*shade,0,255));
+ pixels[p+2]=Math.round(clamp((baseB*(1-whiteCover)+255*whiteCover)*shade,0,255));}
+function dab(a,x,y,gain,relief=0){
+ if(x<0||y<0||x>=N||y>=N||gain<=0)return;
+ gain=Math.max(0,Math.round(gain));if(!gain)return;
+ const j=y*N+x,base=j*4,own=base+a,old=pigment[own];
+ // A wet tool lifts a small amount of the underlying colors into its own reservoir.
+ // The reservoir belongs to the tool and travels with the ant.
+ const pickup=wet*.32*(1-.68*thick);
+ for(let b=0;b<4;b++){
+  if(b===a)continue;
+  const q=base+b,available=pigment[q];
+  const lifted=Math.min(available,Math.round(available*pickup*Math.min(1,gain/18)));
+  if(lifted>0){pigment[q]-=lifted;carry[a*4+b]=Math.min(500,carry[a*4+b]+lifted);}
+ }
+ const displacement=(1-mix)*gain*.95*(1-.75*thick);
+ for(let b=0;b<4;b++)if(b!==a){
+  let q=base+b;pigment[q]=Math.max(0,pigment[q]-Math.round(displacement));
+ }
+ pigment[own]=Math.min(255,old+gain);
+ counts[a]+=Math.max(0,pigment[own]-old);
+ // Previously picked-up paint is deposited on the new mark.
+ // A fraction remains in the tool to create visible colored trails.
+ for(let b=0;b<4;b++){
+  if(b===a)continue;
+  const slot=a*4+b,release=Math.min(carry[slot],Math.max(0,Math.round(carry[slot]*wet*.14*(1-.65*thick))));
+  if(release>0){pigment[base+b]=Math.min(255,pigment[base+b]+release);carry[slot]-=release;}
+ }
+ if(!painted[j]){painted[j]=1;filled++}
+ recolor(j,relief);dirty=true;
+}
+function stamp(a,j,d){
+ const cx=j%N,cy=(j/N)|0,angle=d*Math.PI/2+(Math.random()-.5)*.28;
+ const co=Math.cos(angle),si=Math.sin(angle),scale=toolSizes[a];
+ // Rotate both the flat contact face and the narrow edge in the ant's travel direction.
+ const edge=Math.random()<.28;
+ const halfLength=([2.2,4.4,4.8,9.0][a])*scale;
+ const halfWidth=([1.0,2.8,2.7,5.1][a])*scale*(edge?.19:1);
+ const lim=Math.ceil(Math.hypot(halfLength,halfWidth)+2);
+ const marks=[];let totalWeight=0;
+ for(let oy=-lim;oy<=lim;oy++)for(let ox=-lim;ox<=lim;ox++){
+  let u=ox*co+oy*si,v=-ox*si+oy*co;
+  if(Math.abs(u)>halfLength||Math.abs(v)>halfWidth)continue;
+  let q=Math.random(),weight=1,relief=0;
+  if(a<2){
+   // Bristle gaps and directional streaks, soft feathered edges.
+   let bristle=.67+.33*Math.sin(v*5.3+Math.floor(u*.4)*.3);
+   weight=bristle*(.75+.25*q);
+   if(Math.abs(v)>halfWidth*.8)weight*=.55;
+   if(q<.12)continue;
+  }else{
+   // Knife: angular edges, pigment ridges, a glint and a shadow along the blade.
+   let ridge=Math.sin(v*2.9+u*.43)+.35*Math.sin(v*6.2-u*.25);
+   relief=texture*(ridge*.13+(v/Math.max(.1,halfWidth))*.14);
+   weight=.83+.17*q;
+   if(q<.035)continue;
+  }
+  if(cx+ox<0||cy+oy<0||cx+ox>=N||cy+oy>=N)continue;
+  marks.push([cx+ox,cy+oy,weight,relief]);totalWeight+=weight;
+ }
+ // Exactly the same pigment budget per stamp, independent of tool footprint.
+ // Distribute integer pigment units using weighted stochastic allocation.
+ if(!marks.length)return;
+ let remaining=deposit;
+ for(let i=0;i<marks.length;i++){
+  const m=marks[i];const share=i===marks.length-1?remaining:Math.min(remaining,Math.floor(deposit*m[2]/totalWeight+(Math.random())));
+  remaining-=share;dab(a,m[0],m[1],share,m[3]);
+ }
+}
+// The sky painter is a separate module. The original motor remains the fallback.
+const palette=[[27,72,153],[30,126,199],[83,190,220],[226,237,235]];
+const phaseNames=['Breed penseel — volledige dekking','Groot schildersmes — kleurvlakken','Klein penseel — verbindingen','Klein schildersmes — details','Alle gereedschappen — chaos','Lucht voltooid'];
+function skyInit(){
+ skySeed=(Math.random()*100000)|0;
+ const H=Math.floor(N*skyHeight);skyPainted=0;skyMask.fill(0);skyPhase=0;skyMarks=0;
+ for(let a=0;a<4;a++){pos[a]=((H*(.16+.19*a))|0)*N+((N*(.18+.2*a))|0);dir[a]=a%4}
+ for(let y=0;y<H;y++)for(let x=0;x<N;x++){let p=(y*N+x)*4;pixels[p]=246;pixels[p+1]=244;pixels[p+2]=238;pixels[p+3]=255}
+ $('phaseStatus').textContent='Fase 1 — '+phaseNames[0];$('phaseProgress').textContent='0% van de lucht bedekt';
+}
+function skyColor(a){let ix=(a+skySeed)%skyColors;return palette[ix]}
+function skyDab(x,y,color,opacity,relief){
+ const H=Math.floor(N*skyHeight);if(x<0||x>=N||y<0||y>=H)return;
+ const j=y*N+x,p=j*4;
+ if(skyPhase===0&&!skyMask[j]){skyMask[j]=1;skyPainted++}
+ let mixAmt=clamp(opacity*(.35+.65*mix)*(1-.46*thick),.03,.96);
+ // Wet paint picks up the underlying color and drags it to the next brush contact.
+ const wetMix=wet*(1-.55*thick);
+ const r=pixels[p],g=pixels[p+1],b=pixels[p+2];
+ let target=[color[0]*(1-wetMix*.35)+r*wetMix*.35,color[1]*(1-wetMix*.35)+g*wetMix*.35,color[2]*(1-wetMix*.35)+b*wetMix*.35];
+ let shade=1+relief*thick;
+ pixels[p]=clamp(Math.round((r*(1-mixAmt)+target[0]*mixAmt)*shade),0,255);
+ pixels[p+1]=clamp(Math.round((g*(1-mixAmt)+target[1]*mixAmt)*shade),0,255);
+ pixels[p+2]=clamp(Math.round((b*(1-mixAmt)+target[2]*mixAmt)*shade),0,255);
+ dirty=true;
+}
+function skyStamp(a,x,y,d){
+ const phase=skyPhase,tool=phase===0?1:phase===1?3:phase===2?0:phase===3?2:(skyMarks%4);
+ const base=([2.2,5.3,4.2,10][tool]),width=([.85,3.3,2.3,5.1][tool]);
+ const factor=toolSizes[tool]*(phase===0?1.8:phase===1?1.5:phase===4?.85:1);
+ const L=base*factor,W=width*factor*(Math.random()<.22?.25:1),theta=d*Math.PI/2+(Math.random()-.5)*.8;
+ const cs=Math.cos(theta),sn=Math.sin(theta),lim=Math.ceil(Math.hypot(L,W))+1;
+ const color=skyColor(a),isKnife=(tool===2||tool===3);
+ for(let oy=-lim;oy<=lim;oy++)for(let ox=-lim;ox<=lim;ox++){
+  let u=ox*cs+oy*sn,v=-ox*sn+oy*cs;
+  if(Math.abs(u)>L||Math.abs(v)>W)continue;
+  if(Math.random()<(isKnife?.055:.10))continue;
+  let grain=isKnife?Math.sin(v*2.1+u*.33)*.19:Math.sin(v*5.3)*.10;
+  let opacity=clamp((deposit/110)*(.24+(1-Math.abs(v)/Math.max(W,.1))*.18),.07,.88);
+  if(phase===0)opacity=Math.max(opacity,.72);
+  skyDab(x+ox,y+oy,color,opacity,grain*texture);
+ }
+ skyMarks++;
+}
+function skyStep(a){
+ if(skyPhase>=5)return;
+ const H=Math.floor(N*skyHeight),j=pos[a],x=j%N,y=(j/N)|0;
+ let d=Math.floor(Math.random()*4),nx=x+dx[d],ny=y+dy[d];
+ // In the base coat, direct ants towards uncovered tiles to guarantee completion.
+ if(skyPhase===0){
+  if(skyMarks%8===0){
+   let candidate=-1;
+   for(let k=0;k<30;k++){let tx=(Math.random()*N)|0,ty=(Math.random()*H)|0,idx=ty*N+tx;if(!skyMask[idx]){candidate=idx;break}}
+   if(candidate<0){for(let k=0;k<1500;k++){let idx=(skySeed+k*9973+skyMarks*7919)% (N*H);if(!skyMask[idx]){candidate=idx;break}}}
+   if(candidate>=0){nx=candidate%N;ny=(candidate/N)|0}
+  }
+ }else{
+  if(skyMarks%35===0){nx=(Math.random()*N)|0;ny=(Math.random()*H)|0}
+  if(skyPhase===1){let band=(Math.sin((nx+skySeed)*.014)+Math.cos(ny*.021));if(band<-.25&&Math.random()<.9)return}
+ }
+ nx=clamp(nx,0,N-1);ny=clamp(ny,0,H-1);pos[a]=ny*N+nx;dir[a]=d;
+ if(skyPhase===0||Math.random()<(skyPhase===4?.45:.74))skyStamp(a,nx,ny,d);
+ const target=N*H;
+ if(skyPhase===0&&skyPainted>=target){skyPhase++;skyMarks=0}
+ else if(skyPhase===0&&skyMarks>target/6){
+  // Final sweep fills all remaining uncovered pixels, without leaving holes.
+  for(let q=0;q<target;q++)if(!skyMask[q]){skyMask[q]=1;skyPainted++;let yy=(q/N)|0,xx=q%N;skyDab(xx,yy,skyColor((xx+yy)%skyColors),1,0)}
+  skyPhase++;skyMarks=0;
+ }else if(skyPhase>0){
+  const goals=[0,0,Math.round(18000*skyDetail),Math.round(14000*skyDetail),Math.round(11000*skyDetail),Math.round(8500*skyDetail)];
+  if(skyMarks>=goals[skyPhase]){skyPhase++;skyMarks=0}
+ }
+}
+function step(a){if(skyMode){skyStep(a);return}const old=pos[a],direction=dir[a],options=[0,0,0,0];let total=0;const homeX=[250,750,250,750][a],homeY=[250,250,750,750][a];for(let d=0;d<4;d++){let j=neighbor(old,d),x=j%N,y=(j/N)|0,own=pigment[j*4+a]/255;let score=.12+(1-own)*2.6;let distance=Math.hypot(x-homeX,y-homeY)/700;score*=Math.exp(-distance*(1-spread)*2.5);score*=.8+Math.random()*.4;options[d]=score;total+=score}let pick=Math.random()*total,chosen=direction;for(let d=0;d<4;d++){pick-=options[d];if(pick<=0){chosen=d;break}}let j=neighbor(old,chosen);pos[a]=j;dir[a]=chosen;if(Math.random()<=.78)stamp(a,j,chosen)}
+function draw(){ctx.putImageData(image,0,0);for(let a=0;a<4;a++){let j=pos[a];ctx.beginPath();ctx.arc(j%N+.5,Math.floor(j/N)+.5,5,0,Math.PI*2);ctx.fillStyle=colors[a];ctx.fill();ctx.lineWidth=1.5;ctx.strokeStyle='#222';ctx.stroke()}dirty=false}
+function update(){$('info').textContent=skyMode?((running?'● Actief':'Gepauzeerd')+' · lucht '+(skyPainted/(N*Math.floor(N*skyHeight))*100).toFixed(1)+'% bedekt'):((running?'● Actief':'Gepauzeerd')+' · '+(filled/T*100).toFixed(2)+'% beschilderd');if(skyMode){$('phaseStatus').textContent='Fase '+Math.min(skyPhase+1,5)+' — '+phaseNames[skyPhase];$('phaseProgress').textContent=skyPhase===0?(skyPainted/(N*Math.floor(N*skyHeight))*100).toFixed(1)+'% bedekt':skyPhase===5?'Klaar — alle vijf fasen uitgevoerd':'Geselecteerde delen worden overschilderd';}for(let a=0;a<4;a++)$('c'+a).textContent=Math.round(counts[a]).toLocaleString('nl-BE')}
+function frame(t){let dt=last?Math.min(.05,(t-last)/1000):.016;last=t;if(running){acc+=speed*dt;let batches=Math.min(250,Math.floor(acc));acc-=batches;for(let n=0;n<batches;n++)for(let a=0;a<4;a++)step(a);if(dirty)draw();update()}requestAnimationFrame(frame)}
+$('start').onclick=()=>{running=true;last=0;update()};$('pause').onclick=()=>{running=false;update()};$('reset').onclick=()=>reset(false);$('new').onclick=()=>reset(true);
+for(const id of ['speed','deposit','texture','mix','wet','thick','spread','skyHeight','skyColors','skyDetail'])$(id).oninput=e=>{let v=+e.target.value;if(id==='speed')speed=v;else if(id==='deposit')deposit=v;else if(id==='texture')texture=v/100;else if(id==='mix')mix=v/100;else if(id==='wet')wet=v/100;else if(id==='thick')thick=v/100;else if(id==='spread')spread=v/100;else if(id==='skyHeight'){skyHeight=v/100;reset()}else if(id==='skyColors'){skyColors=v;reset()}else if(id==='skyDetail')skyDetail=v/100;$(id+'Out').textContent=id==='speed'?v.toLocaleString('nl-BE'):['deposit','skyColors'].includes(id)?String(v):v+'%'};
+$('skyMode').onchange=e=>{skyMode=e.target.checked;reset()};
+// Nonlinear scaling: stand 1 = original dimensions; stand 10 = ten times as large.
+for(let i=0;i<4;i++)$('size'+i).oninput=e=>{const n=+e.target.value;toolSizes[i]=1+9*Math.pow((n-1)/9,1.55);$('size'+i+'Out').textContent=n+' / 10'};
+$('save').onclick=()=>{const c=document.createElement('canvas');c.width=c.height=N;c.getContext('2d').putImageData(image,0,0);c.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Bosmieren_Module3_v3_0_'+Date.now()+'.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000)},'image/png')};
+reset();requestAnimationFrame(frame);
+})();
 </script></body></html>
